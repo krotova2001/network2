@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
+using System.IO;
 
 namespace WindowsFormsApp4
 {
@@ -51,8 +52,9 @@ namespace WindowsFormsApp4
                     if (t.Pending())
                     {
                         TcpClient client = t.AcceptTcpClient(); // полчучаем клиентское подключение
-                        this.Invoke(new Action(() => { richTextBox1.Text+=$"{client.Client.RemoteEndPoint}"; }));
-                        client.Close();
+                        this.Invoke(new Action(() => { richTextBox1.Text+=$"{client.Client.RemoteEndPoint}\n"; }));
+                        //client.Close();
+                        Task.Run(() => { ReadClient(client);});
                     }
                 }
             }
@@ -65,6 +67,31 @@ namespace WindowsFormsApp4
                 t.Stop();   
             }
             this.Invoke(new Action(() => { button1.Enabled = true; }));
+        }
+
+        private void ReadClient(TcpClient client)
+        {
+            try
+            {
+                string d = "";
+                StreamReader sr = new StreamReader(client.GetStream(), Encoding.Unicode);
+                while (d!="exit")
+                {
+                    d = sr.ReadLine();
+                    if (d.Trim()!="")
+                    {
+                        this.Invoke(new Action(() => { richTextBox1.Text += $"{client.Client.RemoteEndPoint} - {d}\n"; }));
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            finally 
+            { 
+                client.Close();
+                richTextBox1.Text +=$"Соединение {client.Client.RemoteEndPoint} закрыто\n";
+            }
         }
     }
 }
